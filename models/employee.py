@@ -8,7 +8,7 @@ class Employee(db.Model):
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     position = db.Column(db.String(50))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)  # <-- NOWE
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
 
     user = relationship('User', backref='employee', uselist=False)
 

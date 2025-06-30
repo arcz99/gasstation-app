@@ -6,10 +6,10 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    product_type = db.Column(db.String(20), nullable=False)  # 'fuel', 'oil', 'other'
+    product_type = db.Column(db.String(20), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('product_categories.id'), nullable=False)
     category = relationship('ProductCategory')
-    stock = db.Column(db.Float, nullable=False, default=0.0)  # Stan magazynowy
+    stock = db.Column(db.Float, nullable=False, default=0.0)
 
     def __repr__(self):
         return f'<Product {self.name} ({self.product_type})>'

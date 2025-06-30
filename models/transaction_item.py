@@ -11,7 +11,7 @@ class TransactionItem(db.Model):
     price = db.Column(db.Float, nullable=False)
     total = db.Column(db.Float, nullable=False)
 
-    pump_id = db.Column(db.Integer, db.ForeignKey('pumps.id'), nullable=True)  # <--- NOWE!
+    pump_id = db.Column(db.Integer, db.ForeignKey('pumps.id'), nullable=True)
     pump = relationship('Pump')
 
     transaction = relationship('Transaction', backref='items')

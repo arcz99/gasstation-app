@@ -12,11 +12,10 @@ from flask_login import (
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gas_station.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_very_secret_key'  # <- zmień na własny, losowy!
+app.config['SECRET_KEY'] = 'secret_key'
 
 db.init_app(app)
 
-# --- Flask-Login setup ---
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
@@ -25,14 +24,12 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- Main routes ---
 
 @app.route('/')
 @login_required
 def index():
     return render_template('base.html')
 
-# --- Authentication ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -52,7 +49,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# --- Employees section (Manager only) ---
 
 @app.route('/employees')
 @login_required
@@ -71,23 +67,20 @@ def add_employee():
         first_name = request.form['first_name']
         last_name = request.form['last_name']
         position = request.form['position']
-        username = request.form['username']  # jeśli tworzysz User razem z Employee
-        password = request.form['password']  # <-- NOWE
+        username = request.form['username']
+        password = request.form['password']
         role = request.form['role']
-        # Najpierw utwórz User
+
         user = User(username=username, role=role)
-        user.set_password(password)  # <-- SET PASSWORD
+        user.set_password(password)
         db.session.add(user)
         db.session.commit()
 
-        # Potem Employee, przypisany do usera
         new_employee = Employee(first_name=first_name, last_name=last_name, position=position, user_id=user.id)
         db.session.add(new_employee)
         db.session.commit()
         return redirect(url_for('employee_list'))
     return render_template('add_employee.html')
-
-# --- Fuel Types section (Manager only) ---
 
 @app.route('/fueltypes')
 @login_required
@@ -196,11 +189,9 @@ def transaction_list():
     if current_user.role not in ['manager', 'worker']:
         return render_template('transaction_list.html', transactions=[])
 
-    # Pobierz filtry
     doc_type = request.args.get('doc_type')
     q = request.args.get('q', '').strip()
 
-    # Wyjściowo pobierz wszystkie transakcje
     transactions = Transaction.query
 
     # Filtrowanie po typie dokumentu
@@ -209,7 +200,7 @@ def transaction_list():
     elif doc_type == 'invoice':
         transactions = transactions.join(Transaction.invoice).filter(Transaction.invoice != None)
 
-    # Wyszukiwarka (po numerze, kwocie, kliencie)
+    # Wyszukiwarka
     if q:
         transactions = transactions.outerjoin(Transaction.invoice).outerjoin(Transaction.customer)
         transactions = transactions.filter(
@@ -231,19 +222,17 @@ def add_transaction():
     if current_user.role not in ['manager', 'worker']:
         abort(403)
     pumps = Pump.query.all()
-    customers = Customer.query.all()  # dla faktury
+    customers = Customer.query.all()
 
     if request.method == 'POST':
         pump_id = request.form['pump_id']
-        litres = float(request.form['litres'])  # Pole z formularza: ilość litrów
+        litres = float(request.form['litres'])
         amount = float(request.form['amount'])
         customer_id = request.form.get('customer_id') or None  # None = paragon
 
-        # Pobierz produkt z powiązanego dystrybutora
         pump = Pump.query.get(pump_id)
         product = pump.fuel_type.product if pump and pump.fuel_type else None
 
-        # BLOKADA – sprawdzamy stan magazynowy
         if product:
             if product.stock < litres:
                 error = f"Not enough stock for {product.name} (available: {product.stock}, needed: {litres})"
@@ -252,7 +241,6 @@ def add_transaction():
             error = "Invalid pump or fuel type!"
             return render_template('add_transaction.html', pumps=pumps, customers=customers, error=error)
 
-        # Powiązanie pracownika z User - uproszczenie:
         employee = Employee.query.filter_by(user_id=current_user.id).first()
         if not employee:
             return "No matching employee for current user!", 400
@@ -266,11 +254,11 @@ def add_transaction():
         db.session.add(transaction)
         db.session.commit()
 
-        # ODEJMIJ ilość z magazynu!
+        # ODEJMIJ ilość z magazynu
         if product:
             product.stock -= litres
 
-        # Faktura czy paragon?
+
         if customer_id:  # faktura
             invoice_number = f"FV{transaction.id:05d}/{datetime.now().year}"
             invoice = Invoice(
@@ -355,12 +343,11 @@ def sales():
     pumps = Pump.query.all()
     fuels = FuelType.query.all()
     products = Product.query.filter(Product.product_type != "fuel").all()
-    customers = Customer.query.all()  # do wyboru przy fakturze
+    customers = Customer.query.all()
 
     if request.method == 'POST':
         import json
 
-        # Odczytaj “koszyk” z ukrytego pola
         cart = json.loads(request.form['cart_data'])
         payment_method = request.form['payment_method']
         checkout_type = request.form['checkout_type']  # 'receipt' lub 'invoice'
@@ -395,7 +382,7 @@ def sales():
         if not employee:
             return "Employee not found!", 400
 
-        # Ustal klienta (tylko jeśli faktura)
+        # Ustal klienta
         customer_id = None
         if checkout_type == "invoice":
             customer_id = request.form.get('customer_id')
@@ -405,7 +392,7 @@ def sales():
         # Utwórz Transaction
         transaction = Transaction(
             employee_id=employee.id,
-            pump_id=None,  # Możesz dodać obsługę przypisania do wybranej pompy, jeśli chcesz
+            pump_id=None,
             customer_id=customer_id,
             amount=total,
             date=datetime.now(),
@@ -422,7 +409,7 @@ def sales():
             transaction.bank_account = request.form.get('bank_account')
 
         db.session.add(transaction)
-        db.session.commit()  # Potrzebujemy ID transakcji
+        db.session.commit()
 
         # Dodaj wszystkie pozycje z koszyka
         for item in cart:
@@ -441,7 +428,6 @@ def sales():
 
         # Paragon czy faktura?
         if checkout_type == 'receipt':
-            # Nadawanie numeru paragonu jak wcześniej
             from zoneinfo import ZoneInfo
             receipt_number = f"RCPT{transaction.id:05d}/{date.today().year}"
             receipt = Receipt(
@@ -494,7 +480,7 @@ def add_product():
         stock = float(request.form['stock'])
         price = float(request.form['price'])
         product_type = request.form['product_type']
-        category_id = int(request.form['category_id'])   # <-- NOWE
+        category_id = int(request.form['category_id'])
 
         if Product.query.filter_by(name=name).first():
             error = "Product with this name already exists!"
@@ -503,7 +489,7 @@ def add_product():
                 name=name,
                 price=price,
                 product_type=product_type,
-                category_id=category_id,   # <-- NOWE
+                category_id=category_id,
                 stock = stock
             )
             db.session.add(product)
@@ -526,7 +512,7 @@ def edit_product(product_id):
         price = float(request.form['price'])
         stock = float(request.form['stock'])
         product_type = request.form['product_type']
-        category_id = int(request.form['category_id'])   # <-- NOWE
+        category_id = int(request.form['category_id'])
 
         if Product.query.filter(Product.id != product.id, Product.name == name).first():
             error = "Another product with this name already exists!"
@@ -534,7 +520,7 @@ def edit_product(product_id):
             product.name = name
             product.price = price
             product.product_type = product_type
-            product.category_id = category_id   # <-- NOWE
+            product.category_id = category_id
             product.stock = stock
             db.session.commit()
             return redirect(url_for('product_list'))
@@ -557,7 +543,6 @@ def search_products():
     query = request.args.get('q', '').strip()
     products = []
     if query:
-        # Możesz dodać .ilike dla niewrażliwości na wielkość liter
         products = Product.query.filter(Product.name.ilike(f'%{query}%')).all()
     result = [
         {
@@ -659,4 +644,4 @@ def change_password():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')

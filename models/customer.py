@@ -4,7 +4,7 @@ class Customer(db.Model):
     __tablename__ = 'customers'
 
     id = db.Column(db.Integer, primary_key=True)
-    customer_type = db.Column(db.String(20), nullable=False)  # 'company' or 'individual'
+    customer_type = db.Column(db.String(20), nullable=False)
     company_name = db.Column(db.String(100))
     nip = db.Column(db.String(20))
     first_name = db.Column(db.String(50))

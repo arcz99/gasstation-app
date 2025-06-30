@@ -17,7 +17,7 @@ class Transaction(db.Model):
     pump = relationship('Pump', backref='transactions')
     customer = relationship('Customer', backref='transactions')
 
-    payment_method = db.Column(db.String(20), nullable=False, default="cash")  # cash, card, transfer
+    payment_method = db.Column(db.String(20), nullable=False, default="cash")
     payment_deadline = db.Column(db.Date, nullable=True)  # tylko dla przelewów
     bank_account = db.Column(db.String(50), nullable=True)  # tylko dla przelewów
     cash_given = db.Column(db.Float, nullable=True)  # tylko przy gotówce
