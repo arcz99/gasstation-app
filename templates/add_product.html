@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Add Product{% endblock %}
+{% block content %}
+    <h2>Add New Product</h2>
+    {% if error %}
+        <p style="color:red">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+        <label>Name:</label>
+        <input type="text" name="name" required><br>
+        <label>Price (PLN):</label>
+        <input type="number" step="0.01" name="price" required><br>
+        <label>Product type:</label>
+        <select name="product_type" required>
+            <option value="fuel">Fuel</option>
+            <option value="oil">Oil</option>
+            <option value="other">Other</option>
+        </select><br>
+        <label>Category:</label>
+        <select name="category_id" required>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.vat_rate }}%)</option>
+            {% endfor %}
+        </select><br>
+        <label>Stock:</label>
+        <input type="number" step="0.01" name="stock" required><br>
+        <input type="submit" value="Add Product">
+    </form>
+    <a href="{{ url_for('product_list') }}">Back to Product List</a>
+{% endblock %}

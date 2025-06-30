@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Receipt{% endblock %}
+{% block content %}
+    <h2>Receipt {{ receipt.receipt_number }}</h2>
+    <p>Date: {{ receipt.date.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p>Amount: {{ receipt.amount }} PLN</p>
+
+    <h3>Items:</h3>
+    <ul>
+    {% for item in receipt.transaction.items %}
+        <li>
+            {{ item.product.name }}
+            {% if item.pump %}
+                (Pump #{{ item.pump.pump_number }} - {{ item.pump.fuel_type.name }})
+            {% endif %}
+            — Qty: {{ item.quantity }},
+            Netto: {{ (item.total / (1 + item.product.category.vat_rate / 100))|round(2) }} PLN,
+            VAT {{ item.product.category.vat_rate }}%: {{ (item.total - (item.total / (1 + item.product.category.vat_rate / 100)))|round(2) }} PLN,
+            Brutto: {{ item.total }} PLN
+        </li>
+    {% endfor %}
+    </ul>
+    {# ---- POPRAWNE SUMOWANIE ---- #}
+    {% set ns = namespace(sum_netto=0, sum_vat=0, sum_brutto=0) %}
+    {% for item in receipt.transaction.items %}
+        {% set netto = (item.total / (1 + item.product.category.vat_rate / 100)) %}
+        {% set vat = item.total - netto %}
+        {% set ns.sum_netto = ns.sum_netto + netto %}
+        {% set ns.sum_vat = ns.sum_vat + vat %}
+        {% set ns.sum_brutto = ns.sum_brutto + item.total %}
+    {% endfor %}
+
+    <p><strong>Summary:</strong></p>
+    <ul>
+        <li>Net: {{ ns.sum_netto|round(2) }} PLN</li>
+        <li>VAT: {{ ns.sum_vat|round(2) }} PLN</li>
+        <li>Gross: {{ ns.sum_brutto|round(2) }} PLN</li>
+    </ul>
+    <p><strong>Total: {{ receipt.amount }} PLN</strong></p>
+    <p>Payment method: {{ receipt.transaction.payment_method|capitalize }}</p>
+    {% if receipt.transaction.payment_method == 'transfer' %}
+        <p>Bank account: {{ receipt.transaction.bank_account }}</p>
+        <p>Payment deadline: {{ receipt.transaction.payment_deadline }}</p>
+    {% endif %}
+    {% if receipt.transaction.payment_method == 'cash' %}
+        <p>Cash given: {{ receipt.transaction.cash_given }} PLN</p>
+        <p>Change: {{ receipt.transaction.change_due }} PLN</p>
+    {% endif %}
+    <p>Employee: {{ receipt.transaction.employee.first_name }} {{ receipt.transaction.employee.last_name }}</p>
+    <a href="{{ url_for('sales') }}">Back to Sales</a>
+{% endblock %}

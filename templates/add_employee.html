@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Add Employee{% endblock %}
+{% block content %}
+    <h2>Add New Employee</h2>
+    <form method="post">
+        <label>First Name:</label>
+        <input type="text" name="first_name" required><br>
+        <label>Last Name:</label>
+        <input type="text" name="last_name" required><br>
+        <label>Position:</label>
+        <input type="text" name="position" required><br>
+        <label>Username:</label>
+        <input type="text" name="username" required><br>
+        <label>Password:</label>
+        <input type="password" name="password" required><br>
+        <label>Role:</label>
+        <select name="role" required>
+            <option value="worker">Worker</option>
+            <option value="manager">Manager</option>
+        </select><br>
+        <input type="submit" value="Add Employee">
+    </form>
+    <a href="{{ url_for('employee_list') }}">Back to list</a>
+{% endblock %}

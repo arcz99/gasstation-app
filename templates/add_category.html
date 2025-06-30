@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Add Category{% endblock %}
+{% block content %}
+    <h2>Add Product Category</h2>
+    {% if error %}
+        <p style="color:red">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+        <label>Name:</label>
+        <input type="text" name="name" required><br>
+        <label>VAT rate (%):</label>
+        <input type="number" step="0.01" name="vat_rate" required><br>
+        <input type="submit" value="Add Category">
+    </form>
+    <a href="{{ url_for('category_list') }}">Back to Category List</a>
+{% endblock %}

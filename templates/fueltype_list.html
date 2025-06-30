@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Fuel Types{% endblock %}
+{% block content %}
+    <h2>Fuel Types</h2>
+    <a href="{{ url_for('add_fueltype') }}">Add Fuel Type</a>
+<ul>
+    {% for fueltype in fueltypes %}
+        <li>
+            {{ fueltype.name }}
+            <a href="{{ url_for('edit_fueltype', fueltype_id=fueltype.id) }}">Edit</a>
+            <form action="{{ url_for('delete_fueltype', fueltype_id=fueltype.id) }}" method="post" style="display:inline;">
+                <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+            </form>
+        </li>
+    {% else %}
+        <li>No fuel types yet.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

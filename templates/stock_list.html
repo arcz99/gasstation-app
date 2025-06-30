@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Warehouse / Stock{% endblock %}
+{% block content %}
+<h2>Product Stock (Warehouse)</h2>
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price (PLN)</th>
+        <th>Stock</th>
+    </tr>
+    {% for product in products %}
+    <tr>
+        <td>{{ product.name }}</td>
+        <td>{{ product.category.name }}</td>
+        <td>{{ product.price }}</td>
+        <td>{{ product.stock }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4">No products.</td></tr>
+    {% endfor %}
+</table>
+<a href="{{ url_for('product_list') }}">Back to Products</a>
+{% endblock %}

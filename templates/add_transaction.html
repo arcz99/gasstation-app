@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Add Transaction{% endblock %}
+{% block content %}
+    <h2>New Transaction</h2>
+    <form method="post">
+        <label>Pump:</label>
+        <select name="pump_id" required>
+            {% for pump in pumps %}
+                <option value="{{ pump.id }}">#{{ pump.pump_number }} ({{ pump.fuel_type.name }})</option>
+            {% endfor %}
+        </select><br>
+        <label>Amount (PLN):</label>
+        <input type="number" step="0.01" name="amount" required><br>
+        <label>Customer (optional, for invoice):</label>
+<select name="customer_id">
+    <option value="">--- Receipt (Paragon) ---</option>
+    {% for customer in customers %}
+        <option value="{{ customer.id }}">
+            {% if customer.customer_type == 'company' %}
+                {{ customer.company_name }} (NIP: {{ customer.nip }})
+            {% else %}
+                {{ customer.first_name }} {{ customer.last_name }}
+            {% endif %}
+        </option>
+    {% endfor %}
+</select><br>
+        <input type="submit" value="Submit">
+    </form>
+    <a href="{{ url_for('transaction_list') }}">Back to list</a>
+{% endblock %}

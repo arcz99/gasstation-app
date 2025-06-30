@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Add Fuel Type{% endblock %}
+{% block content %}
+    <h2>Add Fuel Type</h2>
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+        <label>Fuel type name (e.g. ON, Pb95):</label>
+        <input type="text" name="name" required><br>
+        <label>Assign to product:</label>
+        <select name="product_id" required>
+            <option value="">-- choose product --</option>
+            {% for product in fuel_products %}
+                <option value="{{ product.id }}">{{ product.name }} ({{ product.price }} PLN/l)</option>
+            {% endfor %}
+        </select><br>
+        <input type="submit" value="Add Fuel Type">
+    </form>
+    <a href="{{ url_for('fueltype_list') }}">Back to Fuel Types</a>
+{% endblock %}

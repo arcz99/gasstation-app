@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Sale Terminal{% endblock %}
+{% block content %}
+    <h2>Sales / POS</h2>
+    {% if error %}
+        <div class="error" style="color: red; font-weight: bold;">{{ error }}</div>
+    {% endif %}
+    <form id="sale-form" method="post">
+        <h3>Pumps (Fuel dispensers)</h3>
+        <div style="display: flex; gap: 1em; margin-bottom: 1em;">
+            {% for pump in pumps %}
+                <div style="border:1px solid #888; padding:1em; border-radius:8px;">
+                    <strong>Pump #{{ pump.pump_number }}</strong><br>
+                    Fuel: {{ pump.fuel_type.product.name }}<br>
+                    Price: {{ pump.fuel_type.product.price }} PLN/l<br>
+                    <label>Litres:</label>
+                    <input type="number" step="0.01" name="fuel_{{ pump.id }}_litres">
+                    <button type="button" onclick="addToCart('fuel', '{{ pump.fuel_type.product.id }}', '{{ pump.fuel_type.product.name }}', '{{ pump.fuel_type.product.price }}', document.getElementsByName('fuel_{{ pump.id }}_litres')[0].value, null, '{{ pump.fuel_type.product.category.vat_rate }}')">Add</button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h3>Add Other Products</h3>
+        <input type="text" id="product-search" placeholder="Search product by name...">
+        <div id="search-results"></div>
+
+        <h3>Cart</h3>
+        <table id="cart-table" border="1">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Qty/Litres</th>
+                    <th>VAT</th>
+                    <th>Price per unit</th>
+                    <th>Total</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+                <tr><td colspan="4"><strong>Total:</strong></td><td id="cart-total">0.00</td><td></td></tr>
+            </tfoot>
+        </table>
+
+        <h3>Payment Method</h3>
+        <select name="payment_method" id="payment_method" onchange="togglePaymentDetails()">
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="transfer">Transfer</option>
+        </select>
+        <div id="cash-section" style="display:none;">
+            <label>Cash given:</label>
+            <input type="number" step="0.01" name="cash_given" id="cash_given" onchange="updateChange()">
+            <span id="change-due"></span>
+        </div>
+        <div id="transfer-section" style="display:none;">
+            <label>Payment deadline:</label>
+            <input type="date" name="payment_deadline">
+            <label>Bank account:</label>
+            <input type="text" name="bank_account" value="12 3456 7890 1234 5678 9012 3456">
+        </div>
+        <br>
+        <button type="button" onclick="checkout('receipt')">Issue Receipt</button>
+        <button type="button" onclick="checkout('invoice')">Issue Invoice</button>
+        <div id="customer-section" style="display:none;">
+            <label>Choose customer for invoice:</label>
+            <select name="customer_id" id="customer_id">
+                <option value="">-- Choose --</option>
+                {% for customer in customers %}
+                    <option value="{{ customer.id }}">
+                        {% if customer.customer_type == 'company' %}
+                            {{ customer.company_name }} (NIP: {{ customer.nip }})
+                        {% else %}
+                            {{ customer.first_name }} {{ customer.last_name }}
+                        {% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <input type="hidden" name="cart_data" id="cart_data">
+        <input type="hidden" name="checkout_type" id="checkout_type">
+    </form>
+
+    <!-- JavaScript do zarządzania koszykiem -->
+    <script>
+    let cart = [];
+
+    function addToCart(type, productId, name, price, qty, pumpId = null, vatRate = null) {
+        qty = parseFloat(qty);
+        if (!qty || qty <= 0) { alert("Enter quantity/litres!"); return; }
+        cart.push({type, productId, name, price: parseFloat(price), qty, pumpId, vatRate});
+        renderCart();
+    }
+
+    document.getElementById('product-search').addEventListener('input', function() {
+        let q = this.value;
+        if (q.length < 2) {
+            document.getElementById('search-results').innerHTML = '';
+            return;
+        }
+        fetch('/products/search?q=' + encodeURIComponent(q))
+            .then(response => response.json())
+            .then(products => {
+                let html = '';
+                products.forEach(prod => {
+                    html += `<div style="margin-bottom:4px; border:1px solid #888; display:inline-block; padding:8px; border-radius:6px;">
+                        <strong>${prod.name}</strong> (${prod.price} PLN, VAT ${prod.vat_rate}%)
+                        <input type="number" min="1" value="1" style="width:50px;" id="qty_${prod.id}">
+                        <button type="button" onclick="addToCart('other', '${prod.id}', '${prod.name}', '${prod.price}', document.getElementById('qty_${prod.id}').value, null, '${prod.vat_rate}')">Add</button>
+                    </div>`;
+                });
+                document.getElementById('search-results').innerHTML = html || '<span style="color:gray">No products found.</span>';
+            });
+    });
+
+    function renderCart() {
+        let tbody = document.querySelector('#cart-table tbody');
+        tbody.innerHTML = '';
+        let total = 0;
+        cart.forEach((item, idx) => {
+            let row = document.createElement('tr');
+            row.innerHTML = `<td>${item.name}${item.pumpId ? ' (Pump #' + item.pumpId + ')' : ''}</td>
+                <td>${item.qty}</td>
+                <td>${item.vatRate ? item.vatRate + '%' : ''}</td>
+                <td>${item.price.toFixed(2)}</td>
+                <td>${(item.price*item.qty).toFixed(2)}</td>
+                <td><button type="button" onclick="removeCartItem(${idx})">X</button></td>`;
+            tbody.appendChild(row);
+            total += item.price * item.qty;
+        });
+        document.getElementById('cart-total').innerText = total.toFixed(2);
+        updateChange();
+    }
+    function removeCartItem(idx) {
+        cart.splice(idx,1);
+        renderCart();
+    }
+    let invoiceAwaitingClient = false;
+
+    function checkout(type) {
+        if(cart.length == 0) { alert("Cart is empty!"); return; }
+        if(type === 'invoice') {
+            document.getElementById('customer-section').style.display = '';
+            let customerSelected = document.getElementById('customer_id').value;
+            if (!customerSelected) {
+                if(!invoiceAwaitingClient) {
+                    invoiceAwaitingClient = true;
+                    alert("Please select a customer for invoice, then click 'Issue Invoice' again.");
+                }
+                return;
+            }
+        } else {
+            document.getElementById('customer-section').style.display = 'none';
+        }
+        document.getElementById('cart_data').value = JSON.stringify(cart);
+        document.getElementById('checkout_type').value = type;
+        document.getElementById('sale-form').submit();
+    }
+    function togglePaymentDetails() {
+        let method = document.getElementById('payment_method').value;
+        document.getElementById('cash-section').style.display = (method == 'cash') ? '' : 'none';
+        document.getElementById('transfer-section').style.display = (method == 'transfer') ? '' : 'none';
+        updateChange();
+    }
+    function updateChange() {
+        let method = document.getElementById('payment_method').value;
+        if(method != 'cash') {
+            document.getElementById('change-due').innerText = '';
+            return;
+        }
+        let cash = parseFloat(document.getElementById('cash_given').value) || 0;
+        let total = parseFloat(document.getElementById('cart-total').innerText);
+        let change = cash - total;
+        document.getElementById('change-due').innerText = (change >= 0) ? `Change: ${change.toFixed(2)} PLN` : '';
+    }
+    document.addEventListener('DOMContentLoaded', function() { togglePaymentDetails(); });
+    </script>
+{% endblock %}

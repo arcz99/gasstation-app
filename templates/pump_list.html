@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Pumps{% endblock %}
+{% block content %}
+    <h2>Pumps</h2>
+    <a href="{{ url_for('add_pump') }}">Add Pump</a>
+    <ul>
+        {% for pump in pumps %}
+            <li>
+                Pump #{{ pump.pump_number }} ({{ pump.fuel_type.name }})
+                <a href="{{ url_for('edit_pump', pump_id=pump.id) }}">Edit</a>
+                <form action="{{ url_for('delete_pump', pump_id=pump.id) }}" method="post" style="display:inline;">
+                    <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+                </form>
+            </li>
+        {% else %}
+            <li>No pumps yet.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

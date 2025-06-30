@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if pump else 'Add' }} Pump{% endblock %}
+{% block content %}
+    <h2>{{ 'Edit' if pump else 'Add' }} Pump</h2>
+    <form method="post">
+        <label>Pump number:</label>
+        <input type="number" name="pump_number" value="{{ pump.pump_number if pump else '' }}" required><br>
+        <label>Fuel type:</label>
+        <select name="fuel_type_id" required>
+            {% for fueltype in fueltypes %}
+                <option value="{{ fueltype.id }}" {% if pump and pump.fuel_type_id == fueltype.id %}selected{% endif %}>{{ fueltype.name }}</option>
+            {% endfor %}
+        </select><br>
+        <input type="submit" value="{{ 'Update' if pump else 'Add' }}">
+    </form>
+    <a href="{{ url_for('pump_list') }}">Back to list</a>
+{% endblock %}

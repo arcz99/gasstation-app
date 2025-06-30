@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+    <h2>Transactions</h2>
+    <a href="{{ url_for('add_transaction') }}">New Transaction</a>
+    <form method="get" action="{{ url_for('transaction_list') }}" style="margin-bottom: 20px;">
+        <label>Document type:</label>
+        <select name="doc_type">
+            <option value="">All</option>
+            <option value="receipt" {% if request.args.get('doc_type') == 'receipt' %}selected{% endif %}>Receipt</option>
+            <option value="invoice" {% if request.args.get('doc_type') == 'invoice' %}selected{% endif %}>Invoice</option>
+        </select>
+        <label>Search:</label>
+        <input type="text" name="q" value="{{ request.args.get('q', '') }}">
+        <button type="submit">Filter</button>
+        <a href="{{ url_for('transaction_list') }}">Clear</a>
+    </form>
+    <ul>
+        {% for transaction in transactions %}
+            <li>
+                <strong>
+                    {% if transaction.invoice %}
+                        Invoice: {{ transaction.invoice.invoice_number }}
+                        | <a href="{{ url_for('view_invoice', invoice_id=transaction.invoice.id) }}">View Invoice</a>
+                    {% elif transaction.receipt %}
+                        Receipt: {{ transaction.receipt.receipt_number }}
+                        | <a href="{{ url_for('view_receipt', receipt_id=transaction.receipt.id) }}">View Receipt</a>
+                    {% endif %}
+                </strong><br>
+                Date: {{ transaction.date.strftime('%Y-%m-%d %H:%M') }},
+                Pump: #{{ transaction.pump.pump_number }},
+                Amount: {{ transaction.amount }} PLN,
+                Employee: {{ transaction.employee.first_name }} {{ transaction.employee.last_name }}
+                {% if transaction.customer %}
+                    , Customer:
+                    {% if transaction.customer.customer_type == "company" %}
+                        {{ transaction.customer.company_name }} (NIP: {{ transaction.customer.nip }})
+                    {% else %}
+                        {{ transaction.customer.first_name }} {{ transaction.customer.last_name }}
+                    {% endif %}
+                {% endif %}
+            </li>
+        {% else %}
+            <li>No transactions yet.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
