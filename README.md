@@ -52,3 +52,10 @@ Aplikacja webowa do zarządzania stacją paliw: sprzedaż, fakturowanie, magazyn
 3. **Otwórz w przeglądarce:**  
    [http://localhost:5000](http://localhost:5000)  
    lub na maszynie wirtualnej: [http://IP_UBUNTU:5000](http://IP_UBUNTU:5000)
+
+## Testy automatyczne
+
+Aby uruchomić testy jednostkowe:
+
+```bash
+pytest
